@@ -1,6 +1,7 @@
 package com.vdobrikov.webservice.web.rest;
 
 import com.vdobrikov.webservice.service.RpcService;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,15 +20,13 @@ public class HelloController {
         this.rpcService = rpcService;
     }
 
-    @GetMapping("/hello-blocking")
-    public List<String> helloBlocking() {
-        return rpcService.greetBlocking();
-    }
-
-    @GetMapping("/hello-async")
-    public List<String> helloAsync() {
-        return rpcService.greetAsync().stream()
+    @Async
+    @GetMapping("/hello")
+    public CompletableFuture<List<String>> helloAsync() {
+        List<CompletableFuture<String>> futures = rpcService.greet();
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[futures.size()]))
+            .thenApply(ignore -> futures.stream()
                 .map(CompletableFuture::join)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()));
     }
 }

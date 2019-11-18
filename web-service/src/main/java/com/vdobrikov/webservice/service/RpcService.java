@@ -1,20 +1,25 @@
 package com.vdobrikov.webservice.service;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.vdobrikov.rpc.HelloReply;
 import com.vdobrikov.webservice.service.rpc.client.AsyncRpcClient;
-import com.vdobrikov.webservice.service.rpc.client.BlockingRpcClient;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.stream.Collectors.toList;
 
@@ -25,37 +30,33 @@ public class RpcService {
     private final Set<String> rpcHosts;
     private final TaskExecutor futureExecutor;
 
+    private final LoadingCache<String, ManagedChannel> hostToChannel = CacheBuilder.newBuilder()
+            .maximumSize(5)
+            .expireAfterAccess(1, TimeUnit.MINUTES)
+            .build(new CacheLoader<String, ManagedChannel>() {
+                @Override
+                public ManagedChannel load(String host) throws Exception {
+                    return ManagedChannelBuilder.forAddress(host, RPC_PORT).usePlaintext().build();
+                }
+            });
+
     public RpcService(@Value("${rpc-hosts}") Set<String> rpcHosts, TaskExecutor futureExecutor) {
         this.rpcHosts = rpcHosts;
         this.futureExecutor = futureExecutor;
     }
 
-    public List<String> greetBlocking() {
+    public List<CompletableFuture<String>> greet() {
         return rpcHosts.stream()
-                .map(host -> getBlockingReplyFrom(host))
-                .map(HelloReply::getMessage)
-                .collect(toList());
-    }
-
-    public List<CompletableFuture<String>> greetAsync() {
-        return rpcHosts.stream()
-                .map(host -> getAsyncReplyFrom(host))
+                .map(host -> getReplyFrom(host))
                 .map(this::fromListenableFuture)
                 .collect(toList());
     }
 
-    private HelloReply getBlockingReplyFrom(String host) {
-        try (BlockingRpcClient client = new BlockingRpcClient(host, RPC_PORT)) {
+    private ListenableFuture<HelloReply> getReplyFrom(String host) {
+        try {
+            AsyncRpcClient client = new AsyncRpcClient(hostToChannel.get(host));
             return client.greet();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private ListenableFuture<HelloReply> getAsyncReplyFrom(String host) {
-        try (AsyncRpcClient client = new AsyncRpcClient(host, RPC_PORT)) {
-            return client.greet();
-        } catch (IOException e) {
+        } catch (ExecutionException e) {
             throw new RuntimeException(e);
         }
     }
