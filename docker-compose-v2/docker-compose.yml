@@ -1,0 +1,16 @@
+version: '3.7'
+services:
+  web-service:
+    image: gcr.io/microservices-communication-1/web-service:2.0.0
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    environment:
+      - spring_profiles_active=dev
+    depends_on:
+      - rpc-service
+  rpc-service:
+    image: gcr.io/microservices-communication-1/rpc-service:2.0.0
+    restart: unless-stopped
+    environment:
+      - GRPC_SERVICE_ID=gRPC 1

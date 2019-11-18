@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rpc-service-2
+spec:
+  selector:
+    matchLabels:
+      app: rpc-service-2
+      version: v2
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: rpc-service-2
+        version: v2
+    spec:
+      containers:
+        - name: rpc-service-2
+          image: "gcr.io/microservices-communication-1/rpc-service:2.0.0"
+          ports:
+            - containerPort: 50051
+          env:
+            - name: GRPC_SERVICE_ID
+              value: "gRPC 2"

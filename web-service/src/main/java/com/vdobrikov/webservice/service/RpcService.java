@@ -13,8 +13,11 @@ import io.grpc.ManagedChannelBuilder;
 import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -46,16 +49,20 @@ public class RpcService {
     }
 
     public List<CompletableFuture<String>> greet() {
+        return greet(null);
+    }
+
+    public List<CompletableFuture<String>> greet(@Nullable String name) {
         return rpcHosts.stream()
-                .map(host -> getReplyFrom(host))
+                .map(host -> getReplyFrom(host, name))
                 .map(this::fromListenableFuture)
                 .collect(toList());
     }
 
-    private ListenableFuture<HelloReply> getReplyFrom(String host) {
+    private ListenableFuture<HelloReply> getReplyFrom(@Nonnull String host, @Nullable String name) {
         try {
             AsyncRpcClient client = new AsyncRpcClient(hostToChannel.get(host));
-            return client.greet();
+            return client.greet(name);
         } catch (ExecutionException e) {
             throw new RuntimeException(e);
         }

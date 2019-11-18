@@ -18,9 +18,11 @@ public class GreeterGrpcImpl extends GreeterGrpc.GreeterImplBase {
 
     @Override
     public void sayHello(HelloRequest request, StreamObserver<HelloReply> responseObserver) {
-        LOG.info("Handling request..");
+        String name = request.getName();
+        name = name.isEmpty() ? "[no-name]" : name;
+        LOG.info(String.format("Handling request for %s..", name));
         HelloReply reply = HelloReply.newBuilder()
-                .setMessage("Hello from service " + serviceId)
+                .setMessage(String.format("Hello %s from service %s", name, serviceId))
                 .build();
 
         responseObserver.onNext(reply);

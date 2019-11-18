@@ -4,6 +4,7 @@ import com.vdobrikov.webservice.service.RpcService;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -22,8 +23,8 @@ public class HelloController {
 
     @Async
     @GetMapping("/hello")
-    public CompletableFuture<List<String>> helloAsync() {
-        List<CompletableFuture<String>> futures = rpcService.greet();
+    public CompletableFuture<List<String>> helloAsync(@RequestParam(name = "name", required = false) String name) {
+        List<CompletableFuture<String>> futures = rpcService.greet(name);
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[futures.size()]))
             .thenApply(ignore -> futures.stream()
                 .map(CompletableFuture::join)
