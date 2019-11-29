@@ -17,13 +17,9 @@ $ ./build-push-deploy-v1.sh
 ```
 http://<EXTERNAL_IP>:60000/health`
 ```
-2. Blocking hello
+2. Hello (async) with optional name
 ```
-http://<EXTERNAL_IP>:60000/api/hello-blocking
-```
-3. Async hello
-```
-http://<EXTERNAL_IP>:60000/api/hello-async
+http://<EXTERNAL_IP>:60000/api/hello?name=Neo
 ```
 
 ## Delete Cluster
